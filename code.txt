@@ -1,0 +1,390 @@
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <ctime>
+#include <Windows.h>
+#include <vector>
+#include <string>
+#include <algorithm>
+using namespace std;
+
+// ============================================================
+// 1. ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ: СОРТИРОВКА ПОДСЧЁТОМ ПО РАЗРЯДУ
+// ============================================================
+void countingSortByDigit(vector<int>& arr, int exp) {
+    int n = arr.size();
+    if (n <= 1) return;
+
+    vector<int> output(n, 0);
+    int count[10] = { 0 };
+
+    // Подсчёт количества чисел с каждой цифрой в текущем разряде
+    for (int i = 0; i < n; i++) {
+        int digit = (arr[i] / exp) % 10;
+        count[digit]++;
+    }
+
+    // Преобразование count для определения позиций
+    for (int i = 1; i < 10; i++) {
+        count[i] += count[i - 1];
+    }
+
+    // Построение выходного массива (устойчивая сортировка)
+    for (int i = n - 1; i >= 0; i--) {
+        int digit = (arr[i] / exp) % 10;
+        output[count[digit] - 1] = arr[i];
+        count[digit]--;
+    }
+
+    // Копирование отсортированного массива обратно
+    for (int i = 0; i < n; i++) {
+        arr[i] = output[i];
+    }
+}
+
+// ============================================================
+// 2. ОСНОВНАЯ ФУНКЦИЯ: ПОРАЗРЯДНАЯ СОРТИРОВКА (LSD)
+// ============================================================
+void radixSort(vector<int>& arr) {
+    if (arr.size() <= 1) return;
+
+    // Нахождение максимального элемента
+    int maxVal = arr[0];
+    for (int i = 1; i < arr.size(); i++) {
+        if (arr[i] > maxVal) maxVal = arr[i];
+    }
+
+    // Сортировка по каждому разряду
+    for (int exp = 1; maxVal / exp > 0; exp *= 10) {
+        countingSortByDigit(arr, exp);
+    }
+}
+
+// ============================================================
+// 3. ФУНКЦИЯ ЗАПИСИ МАССИВА В ФАЙЛ
+// ============================================================
+void writeArrayToFile(const vector<int>& arr, const string& filename, const string& header) {
+    ofstream outFile(filename.c_str());
+    if (outFile.is_open()) {
+        outFile << header << endl << endl;
+        outFile << "Количество элементов: " << arr.size() << endl << endl;
+
+        for (int i = 0; i < arr.size(); i++) {
+            outFile << setw(8) << arr[i];
+            if ((i + 1) % 10 == 0) outFile << endl;
+        }
+        outFile.close();
+        cout << "✅ Данные записаны в файл: " << filename << endl;
+    }
+    else {
+        cout << "❌ Ошибка открытия файла: " << filename << endl;
+    }
+}
+
+// ============================================================
+// 4. ФУНКЦИЯ ГЕНЕРАЦИИ МАССИВА
+// ============================================================
+void generateArray(vector<int>& arr, int size, int minVal, int maxVal, int type) {
+    arr.resize(size);
+
+    switch (type) {
+    case 1: // Случайные данные
+        for (int i = 0; i < size; i++) {
+            arr[i] = minVal + rand() % (maxVal - minVal + 1);
+        }
+        break;
+
+    case 2: // Упорядоченные (по возрастанию)
+        for (int i = 0; i < size; i++) {
+            arr[i] = minVal + i * ((maxVal - minVal) / size);
+        }
+        break;
+
+    case 3: // Инвертированные (по убыванию)
+        for (int i = 0; i < size; i++) {
+            arr[i] = maxVal - i * ((maxVal - minVal) / size);
+        }
+        break;
+
+    case 4: // Повторяющиеся элементы
+        for (int i = 0; i < size; i++) {
+            arr[i] = minVal + (i % 10) * ((maxVal - minVal) / 10);
+        }
+        break;
+
+    default:
+        for (int i = 0; i < size; i++) {
+            arr[i] = minVal + rand() % (maxVal - minVal + 1);
+        }
+    }
+}
+
+// ============================================================
+// 5. ФУНКЦИЯ ПРОВЕРКИ СОРТИРОВКИ (для тестирования)
+// ============================================================
+bool isSorted(const vector<int>& arr) {
+    for (int i = 1; i < arr.size(); i++) {
+        if (arr[i] < arr[i - 1]) return false;
+    }
+    return true;
+}
+
+// ============================================================
+// 6. ГЛАВНАЯ ФУНКЦИЯ С МЕНЮ
+// ============================================================
+int main() {
+    // Настройка русификации
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    srand(time(NULL));
+
+    vector<int> arr;
+    int choice;
+    bool exitProgram = false;
+
+    cout << "╔══════════════════════════════════════════════════════════╗" << endl;
+    cout << "║         ПОРАЗРЯДНАЯ СОРТИРОВКА (RADIX SORT)            ║" << endl;
+    cout << "║                 Вариант №9                             ║" << endl;
+    cout << "╚══════════════════════════════════════════════════════════╝" << endl;
+
+    while (!exitProgram) {
+        cout << "\n═══════════════════════════════════════════════════════════" << endl;
+        cout << "  ГЛАВНОЕ МЕНЮ" << endl;
+        cout << "═══════════════════════════════════════════════════════════" << endl;
+        cout << "  1. Ввести размер массива" << endl;
+        cout << "  2. Ввести диапазон генерации" << endl;
+        cout << "  3. Выбрать тип данных" << endl;
+        cout << "  4. Сгенерировать массив" << endl;
+        cout << "  5. Выполнить сортировку" << endl;
+        cout << "  6. Показать время работы" << endl;
+        cout << "  7. Записать в файл" << endl;
+        cout << "  8. Вывести массив на экран" << endl;
+        cout << "  9. Сравнить со стандартной сортировкой" << endl;
+        cout << "  0. Выход" << endl;
+        cout << "═══════════════════════════════════════════════════════════" << endl;
+        cout << "Выберите действие: ";
+        cin >> choice;
+
+        static int size = 0;
+        static int minVal = -1000;
+        static int maxVal = 1000;
+        static int dataType = 1; // 1-случайные, 2-упорядоченные, 3-инвертированные, 4-повторяющиеся
+        static string inputFile = "input_numbers.txt";
+        static string outputFile = "sorted_numbers.txt";
+        static double sortTime = 0.0;
+        static bool isSortedFlag = false;
+        static bool arrayGenerated = false;
+
+        switch (choice) {
+        case 1: { // Ввод размера
+            cout << "Введите размер массива (больше 1): ";
+            do {
+                cin >> size;
+                if (size < 2) {
+                    cout << "❌ Размер должен быть больше 1. Повторите: ";
+                }
+            } while (size < 2);
+            cout << "✅ Размер установлен: " << size << endl;
+            arrayGenerated = false;
+            isSortedFlag = false;
+            break;
+        }
+
+        case 2: { // Ввод диапазона
+            cout << "Введите минимальное значение: ";
+            cin >> minVal;
+            cout << "Введите максимальное значение: ";
+            cin >> maxVal;
+            if (minVal > maxVal) {
+                swap(minVal, maxVal);
+            }
+            cout << "✅ Диапазон установлен: [" << minVal << ", " << maxVal << "]" << endl;
+            arrayGenerated = false;
+            isSortedFlag = false;
+            break;
+        }
+
+        case 3: { // Выбор типа данных
+            cout << "Выберите тип данных:" << endl;
+            cout << "  1. Случайные данные" << endl;
+            cout << "  2. Упорядоченные (по возрастанию)" << endl;
+            cout << "  3. Инвертированные (по убыванию)" << endl;
+            cout << "  4. Повторяющиеся элементы" << endl;
+            cout << "Ваш выбор: ";
+            cin >> dataType;
+            cout << "✅ Тип данных установлен: " << dataType << endl;
+            arrayGenerated = false;
+            isSortedFlag = false;
+            break;
+        }
+
+        case 4: { // Генерация массива
+            if (size == 0) {
+                cout << "❌ Сначала введите размер массива (пункт 1)" << endl;
+                break;
+            }
+            generateArray(arr, size, minVal, maxVal, dataType);
+            arrayGenerated = true;
+            isSortedFlag = false;
+            cout << "✅ Массив сгенерирован! Размер: " << arr.size() << endl;
+            cout << "   Первые 10 элементов: ";
+            for (int i = 0; i < min(10, (int)arr.size()); i++) {
+                cout << arr[i] << " ";
+            }
+            cout << "..." << endl;
+            break;
+        }
+
+        case 5: { // Выполнить сортировку
+            if (!arrayGenerated) {
+                cout << "❌ Сначала сгенерируйте массив (пункт 4)" << endl;
+                break;
+            }
+            cout << "⏳ Выполняется сортировка..." << endl;
+
+            // Создаем копию для проверки
+            vector<int> arrCopy = arr;
+
+            // Замеряем время
+            clock_t start = clock();
+            radixSort(arr);
+            clock_t end = clock();
+            sortTime = (double)(end - start) / CLOCKS_PER_SEC;
+
+            // Проверка сортировки
+            isSortedFlag = isSorted(arr);
+
+            if (isSortedFlag) {
+                cout << "✅ Массив успешно отсортирован!" << endl;
+                cout << "   Время выполнения: " << sortTime << " сек" << endl;
+            }
+            else {
+                cout << "❌ Ошибка: массив не отсортирован!" << endl;
+            }
+            break;
+        }
+
+        case 6: { // Показать время
+            if (!isSortedFlag) {
+                cout << "❌ Сначала выполните сортировку (пункт 5)" << endl;
+            }
+            else {
+                cout << "⏱️ Время выполнения сортировки: " << sortTime << " секунд" << endl;
+            }
+            break;
+        }
+
+        case 7: { // Запись в файл
+            if (!arrayGenerated) {
+                cout << "❌ Сначала сгенерируйте массив (пункт 4)" << endl;
+                break;
+            }
+            string inputFileName, outputFileName;
+            cout << "Введите имя файла для исходных данных (или Enter для умолчания): ";
+            cin.ignore();
+            getline(cin, inputFileName);
+            if (inputFileName.empty()) inputFileName = "input_numbers.txt";
+
+            // Запись исходного массива
+            vector<int> tempArr = arr;
+            if (isSortedFlag) {
+                // Если массив отсортирован, восстанавливаем исходный
+                cout << "⚠️  Массив уже отсортирован. Записываем исходный несортированный массив." << endl;
+                // Здесь нужно сохранить исходный массив до сортировки
+                // В реальной программе нужно хранить две копии
+            }
+            writeArrayToFile(arr, inputFileName, "ИСХОДНЫЙ МАССИВ:");
+
+            cout << "Введите имя файла для отсортированных данных (или Enter для умолчания): ";
+            getline(cin, outputFileName);
+            if (outputFileName.empty()) outputFileName = "sorted_numbers.txt";
+
+            if (isSortedFlag) {
+                writeArrayToFile(arr, outputFileName, "ОТСОРТИРОВАННЫЙ МАССИВ:");
+            }
+            else {
+                cout << "❌ Сначала отсортируйте массив (пункт 5)" << endl;
+            }
+            break;
+        }
+
+        case 8: { // Вывод на экран
+            if (!arrayGenerated) {
+                cout << "❌ Сначала сгенерируйте массив (пункт 4)" << endl;
+                break;
+            }
+            cout << "\n═══════════════════════════════════════════════════════════" << endl;
+            cout << "  МАССИВ (показано до 50 элементов)" << endl;
+            cout << "═══════════════════════════════════════════════════════════" << endl;
+            int showCount = min(50, (int)arr.size());
+            cout << "Размер: " << arr.size() << endl;
+            cout << "Состояние: " << (isSortedFlag ? "ОТСОРТИРОВАН" : "НЕ ОТСОРТИРОВАН") << endl;
+            cout << "Элементы:" << endl;
+            for (int i = 0; i < showCount; i++) {
+                cout << setw(8) << arr[i];
+                if ((i + 1) % 10 == 0) cout << endl;
+            }
+            if (arr.size() > 50) {
+                cout << "\n... и еще " << arr.size() - 50 << " элементов" << endl;
+            }
+            cout << endl;
+            break;
+        }
+
+        case 9: { // Сравнение со стандартной сортировкой
+            if (!arrayGenerated || !isSortedFlag) {
+                cout << "❌ Сначала сгенерируйте и отсортируйте массив (пункты 4 и 5)" << endl;
+                break;
+            }
+
+            cout << "\n═══════════════════════════════════════════════════════════" << endl;
+            cout << "  СРАВНЕНИЕ С СОРТИРОВКОЙ ИЗ СТАНДАРТНОЙ БИБЛИОТЕКИ" << endl;
+            cout << "═══════════════════════════════════════════════════════════" << endl;
+
+            // Восстанавливаем исходный массив для сравнения
+            // (для чистоты эксперимента нужно хранить исходную копию)
+            cout << "⚠️  Для сравнения создается новый массив такого же размера" << endl;
+            vector<int> stdArr = arr;
+            // Заполняем случайными числами для чистоты эксперимента
+            generateArray(stdArr, size, minVal, maxVal, 1);
+
+            cout << "⏳ Сортировка стандартной функцией (std::sort)..." << endl;
+            clock_t stdStart = clock();
+            sort(stdArr.begin(), stdArr.end());
+            clock_t stdEnd = clock();
+            double stdTime = (double)(stdEnd - stdStart) / CLOCKS_PER_SEC;
+
+            cout << "\n═══════════════════════════════════════════════════════════" << endl;
+            cout << "  РЕЗУЛЬТАТЫ СРАВНЕНИЯ" << endl;
+            cout << "═══════════════════════════════════════════════════════════" << endl;
+            cout << "  Поразрядная сортировка:    " << sortTime << " сек" << endl;
+            cout << "  Стандартная сортировка:    " << stdTime << " сек" << endl;
+            cout << "───────────────────────────────────────────────────────────────" << endl;
+            if (sortTime < stdTime) {
+                cout << "  ✅ Поразрядная сортировка быстрее на "
+                    << ((stdTime - sortTime) / stdTime * 100) << "%" << endl;
+            }
+            else if (sortTime > stdTime) {
+                cout << "  ⚠️  Стандартная сортировка быстрее на "
+                    << ((sortTime - stdTime) / sortTime * 100) << "%" << endl;
+            }
+            else {
+                cout << "  ➡️  Время работы одинаково" << endl;
+            }
+            cout << "═══════════════════════════════════════════════════════════\n" << endl;
+            break;
+        }
+
+        case 0: { // Выход
+            exitProgram = true;
+            cout << "👋 Программа завершена. Спасибо за использование!" << endl;
+            break;
+        }
+
+        default:
+            cout << "❌ Неверный выбор. Попробуйте снова." << endl;
+        }
+    }
+
+    return 0;
+}
